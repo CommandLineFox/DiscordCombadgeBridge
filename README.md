@@ -54,6 +54,8 @@ If you want to run your own independent version, create a custom application on 
 Special thanks goes to Digikind, LessaShuftan, Lulalaby and Lother for helping with this project.
 Credit to Mavrickshuey for the original idea
 
+---
+
 > [!NOTE]
 > If your avatar parameter fails to register on startup, open your VRChat Expression Menu, navigate to **Options -> OSC**, and click **Reset Config** to force VRChat to regenerate your avatar's OSC layout file.
 
