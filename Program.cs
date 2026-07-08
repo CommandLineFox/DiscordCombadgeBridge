@@ -1,15 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.IO;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace GFC_ComBadge
 {
     internal class Program
     {
-        // Configuration variables populated from JSON
         static string ClientId = "";
         static string ClientSecret = "";
         static string VrcHost = "127.0.0.1";
@@ -23,41 +18,31 @@ namespace GFC_ComBadge
         static readonly TimeSpan discordRefreshInterval = TimeSpan.FromSeconds(30);
         static readonly TimeSpan vrcRetryDelay = TimeSpan.FromSeconds(2);
 
-        static MuteState state = null!; // Initialized dynamically in Main
+        static MuteState state = null!;
         static TokenResponse? token = null;
+
+        static readonly object vrcLock = new();
         static VrcOscBridge? vrc = null;
+
+        static readonly AutoResetEvent stateChangedEvent = new(false);
 
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-            // Load configuration from appsettings.json
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-
-                // Lista svih resursa koji su uspešno spakovani u .exe
-                string[] resourceNames = assembly.GetManifestResourceNames();
-
                 string resourceName = "GFC_Combadge.appsettings.json";
 
                 using Stream? stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)
                 {
-                    Console.Error.WriteLine("--- EMBEDDED RESOURCES FOUND IN THIS EXE ---");
-                    foreach (var name in resourceNames)
-                    {
-                        Console.Error.WriteLine($"-> {name}");
-                    }
-                    Console.Error.WriteLine("--------------------------------------------\n");
-
                     throw new FileNotFoundException($"Could not find embedded configuration resource: {resourceName}");
                 }
 
-                var config = new ConfigurationBuilder()
-                    .AddJsonStream(stream)
-                    .Build();
+                var config = new ConfigurationBuilder().AddJsonStream(stream).Build();
 
                 ClientId = config["Discord:ClientId"] ?? throw new Exception("Missing Discord:ClientId");
                 ClientSecret = config["Discord:ClientSecret"] ?? throw new Exception("Missing Discord:ClientSecret");
@@ -76,10 +61,6 @@ namespace GFC_ComBadge
             }
 
             Console.WriteLine("Combadge bridge booting...");
-            Console.WriteLine($"Parameter: {BadgeOscAddress}");
-            Console.WriteLine($"VRChat OSC: listen {VrcOutputPort}, send {VrcInputPort}");
-            Console.WriteLine($"Startup default: muted = {DefaultMuted}\n");
-
             var discordTask = RunDiscordLoopAsync(cts.Token);
             var vrcTask = RunVrcLoopAsync(cts.Token);
 
@@ -119,7 +100,11 @@ namespace GFC_ComBadge
 
                             Console.WriteLine(snapshot.Muted ? "Discord state applied: muted." : "Discord state applied: unmuted.");
                         }
-                        await Task.Delay(1000, cancellationToken);
+
+                        var dynamicTimeout = discordRefreshInterval - (DateTimeOffset.UtcNow - lastRefresh);
+                        if (dynamicTimeout < TimeSpan.Zero) dynamicTimeout = TimeSpan.Zero;
+
+                        await Task.Run(() => WaitHandle.WaitAny([stateChangedEvent, cancellationToken.WaitHandle], dynamicTimeout), cancellationToken);
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
@@ -138,13 +123,23 @@ namespace GFC_ComBadge
                 try
                 {
                     Console.WriteLine("Starting VRChat OSC bridge...");
-                    vrc?.Dispose();
-                    vrc = new VrcOscBridge(VrcHost, VrcInputPort, VrcOutputPort, BadgeOscAddress);
+
+                    lock (vrcLock)
+                    {
+                        vrc?.Dispose();
+                        vrc = new VrcOscBridge(VrcHost, VrcInputPort, VrcOutputPort, BadgeOscAddress);
+                    }
 
                     Console.WriteLine("VRChat OSC bridge online.");
 
-                    await vrc.SendChatboxAsync("ComBadge Bridge Connected!", true, false);
-                    await vrc.ReceiveAsync(OnVrcMuteReceived, cancellationToken);
+                    VrcOscBridge? currentVrc;
+                    lock (vrcLock) { currentVrc = vrc; }
+
+                    if (currentVrc != null)
+                    {
+                        await currentVrc.SendChatboxAsync("ComBadge Bridge Connected!", true, false);
+                        await currentVrc.ReceiveAsync(OnVrcMuteReceived, cancellationToken);
+                    }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
                 catch (Exception ex)
@@ -157,13 +152,20 @@ namespace GFC_ComBadge
 
         static void OnVrcMuteReceived(bool vrcState)
         {
-            var changed = state.Set(vrcState, "VRChat OSC (Strict Mode)");
+            if (!vrcState) return;
+
+            var currentSnapshot = state.Get();
+            bool nextMuteState = !currentSnapshot.Muted;
+
+            var changed = state.Set(nextMuteState, "VRChat OSC (Toggle Mode)");
 
             if (changed)
             {
-                Console.WriteLine(vrcState
-                    ? "VRChat explicitly requested: MUTED."
-                    : "VRChat explicitly requested: UNMUTED.");
+                Console.WriteLine(nextMuteState
+                    ? "VRChat requested Toggle: MUTED."
+                    : "VRChat requested Toggle: UNMUTED.");
+
+                stateChangedEvent.Set();
             }
         }
 
@@ -177,7 +179,7 @@ namespace GFC_ComBadge
                 {
                     return await DiscordOAuth.RefreshTokenAsync(ClientId, ClientSecret, currentToken.RefreshToken, cancellationToken);
                 }
-                catch { /* fallback to authorize if refresh token fails */ }
+                catch { }
             }
 
             var code = await discord.AuthorizeAsync(ClientId, DiscordScopes, cancellationToken);
