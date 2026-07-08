@@ -430,3 +430,6 @@ FodyWeavers.xsd
 
 # Unity
 *.unitypackage
+
+# Config
+appsettings.json

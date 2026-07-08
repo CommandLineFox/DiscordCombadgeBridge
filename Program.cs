@@ -1,25 +1,28 @@
-﻿namespace GFC_ComBadge
+﻿using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+
+namespace GFC_ComBadge
 {
     internal class Program
     {
-        // ⚙️ Configurations
-        const string ClientId = "1524055128594714754";
-        const string ClientSecret = "aWhvbMsE0kj_l9ATjP0opCIp8QujnArG";
+        // Configuration variables populated from JSON
+        static string ClientId = "";
+        static string ClientSecret = "";
+        static string VrcHost = "127.0.0.1";
+        static int VrcInputPort;
+        static int VrcOutputPort;
+        static string BadgeOscAddress = "";
+        static bool DefaultMuted;
 
-        // Removed rpc.voice.write to avoid application locks
         static readonly string[] DiscordScopes = ["rpc", "identify"];
-
-        const string VrcHost = "127.0.0.1";
-        const int VrcInputPort = 9000;  // App -> VRChat
-        const int VrcOutputPort = 9001; // VRChat -> App
-        const string BadgeOscAddress = "ComBadgePressed";
-        const bool DefaultMuted = true;
-
         static readonly TimeSpan discordRetryDelay = TimeSpan.FromSeconds(2);
         static readonly TimeSpan discordRefreshInterval = TimeSpan.FromSeconds(30);
         static readonly TimeSpan vrcRetryDelay = TimeSpan.FromSeconds(2);
 
-        static readonly MuteState state = new(DefaultMuted);
+        static MuteState state = null!; // Initialized dynamically in Main
         static TokenResponse? token = null;
         static VrcOscBridge? vrc = null;
 
@@ -28,9 +31,27 @@
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-            if (string.IsNullOrWhiteSpace(ClientSecret))
+            // Load configuration from appsettings.json
+            try
             {
-                Console.Error.WriteLine("Missing DISCORD_CLIENT_SECRET. Set it up before running.");
+                var config = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .Build();
+
+                ClientId = config["Discord:ClientId"] ?? throw new Exception("Missing Discord:ClientId");
+                ClientSecret = config["Discord:ClientSecret"] ?? throw new Exception("Missing Discord:ClientSecret");
+                VrcHost = config["VrcOsc:Host"] ?? "127.0.0.1";
+                VrcInputPort = int.Parse(config["VrcOsc:InputPort"] ?? "9000");
+                VrcOutputPort = int.Parse(config["VrcOsc:OutputPort"] ?? "9001");
+                BadgeOscAddress = config["VrcOsc:BadgeAddress"] ?? "ComBadgePressed";
+                DefaultMuted = bool.Parse(config["VrcOsc:DefaultMuted"] ?? "true");
+
+                state = new MuteState(DefaultMuted);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Configuration Error: {ex.Message}");
                 return;
             }
 
@@ -51,7 +72,7 @@
             {
                 try
                 {
-                    Console.WriteLine("🔌 Connecting to Discord IPC...");
+                    Console.WriteLine("Connecting to Discord IPC...");
                     var connectedDiscord = await DiscordRpcClient.ConnectAsync(ClientId, cancellationToken);
                     await using var ownedDiscord = connectedDiscord;
 
@@ -102,9 +123,7 @@
 
                     Console.WriteLine("VRChat OSC bridge online.");
 
-                    // Instant Visual Ping test on boot
                     await vrc.SendChatboxAsync("ComBadge Bridge Connected!", true, false);
-
                     await vrc.ReceiveAsync(OnVrcMuteReceived, cancellationToken);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
