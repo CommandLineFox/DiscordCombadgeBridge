@@ -48,6 +48,8 @@ If you want to run your own independent version, create a custom application on 
 4. A Discord authorization window will pop up automatically. Click **Authorize** to allow the local named pipe connection.
 5. Tap your avatar's Combadge in-game to toggle your voice mute status.
 
+Once you open the program, it'll mute you in Discord by default. The toggle of the badge is also off by default so you have to turn it on to toggle between states at the time of writing this.
+
 ---
 
 ## Special thanks
