@@ -34,6 +34,8 @@ namespace GFC_ComBadge
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
+                string[] resourceNames = assembly.GetManifestResourceNames();
+
                 string resourceName = "GFC_Combadge.appsettings.json";
 
                 using Stream? stream = assembly.GetManifestResourceStream(resourceName);
@@ -152,18 +154,13 @@ namespace GFC_ComBadge
 
         static void OnVrcMuteReceived(bool vrcState)
         {
-            if (!vrcState) return;
-
-            var currentSnapshot = state.Get();
-            bool nextMuteState = !currentSnapshot.Muted;
-
-            var changed = state.Set(nextMuteState, "VRChat OSC (Toggle Mode)");
+            var changed = state.Set(vrcState, "VRChat OSC (Strict Mode)");
 
             if (changed)
             {
-                Console.WriteLine(nextMuteState
-                    ? "VRChat requested Toggle: MUTED."
-                    : "VRChat requested Toggle: UNMUTED.");
+                Console.WriteLine(vrcState
+                    ? "VRChat explicitly requested: MUTED."
+                    : "VRChat explicitly requested: UNMUTED.");
 
                 stateChangedEvent.Set();
             }
