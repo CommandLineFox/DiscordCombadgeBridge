@@ -56,3 +56,6 @@ Credit to Mavrickshuey for the original idea
 
 > [!NOTE]
 > If your avatar parameter fails to register on startup, open your VRChat Expression Menu, navigate to **Options -> OSC**, and click **Reset Config** to force VRChat to regenerate your avatar's OSC layout file.
+
+> [!NOTE]
+> If you are using multiple Discord client instances, the first one you have opened will be controlled by the software.
