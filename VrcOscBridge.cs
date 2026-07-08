@@ -29,7 +29,6 @@ namespace GFC_ComBadge
                 try
                 {
                     var message = await listener.ReceiveMessageAsync(cancellationToken);
-                    Console.WriteLine($"[OSC RAW] Received packet at address: '{message.Address}' with {message.Arguments.Length} argument(s).");
 
                     if (message.Address == null || !message.Address.EndsWith(parameterAddress, StringComparison.OrdinalIgnoreCase))
                     {
@@ -43,11 +42,8 @@ namespace GFC_ComBadge
 
                     var value = message.Arguments[0];
 
-                    Console.WriteLine($"[OSC MATCH] Matched target address! Raw value type: {value?.GetType().Name}, Value: {value}");
-
                     if (!TryCoerceBool(value, out var muted))
                     {
-                        Console.WriteLine($"Ignored OSC value for {parameterAddress}: {value}");
                         continue;
                     }
 
