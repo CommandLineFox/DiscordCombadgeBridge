@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 
 namespace GFC_ComBadge
 {
@@ -34,9 +35,28 @@ namespace GFC_ComBadge
             // Load configuration from appsettings.json
             try
             {
+                var assembly = Assembly.GetExecutingAssembly();
+
+                // Lista svih resursa koji su uspešno spakovani u .exe
+                string[] resourceNames = assembly.GetManifestResourceNames();
+
+                string resourceName = "GFC_Combadge.appsettings.json";
+
+                using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream == null)
+                {
+                    Console.Error.WriteLine("--- EMBEDDED RESOURCES FOUND IN THIS EXE ---");
+                    foreach (var name in resourceNames)
+                    {
+                        Console.Error.WriteLine($"-> {name}");
+                    }
+                    Console.Error.WriteLine("--------------------------------------------\n");
+
+                    throw new FileNotFoundException($"Could not find embedded configuration resource: {resourceName}");
+                }
+
                 var config = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .AddJsonStream(stream)
                     .Build();
 
                 ClientId = config["Discord:ClientId"] ?? throw new Exception("Missing Discord:ClientId");
