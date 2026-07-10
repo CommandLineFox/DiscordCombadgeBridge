@@ -55,6 +55,12 @@ namespace GFC_ComBadge
                 DefaultMuted = bool.Parse(config["VrcOsc:DefaultMuted"] ?? "true");
 
                 state = new MuteState(DefaultMuted);
+
+                token = TokenStorage.Load();
+                if (token != null)
+                {
+                    Console.WriteLine("Loaded cached authorization tokens from AppData.");
+                }
             }
             catch (Exception ex)
             {
@@ -174,13 +180,21 @@ namespace GFC_ComBadge
             {
                 try
                 {
-                    return await DiscordOAuth.RefreshTokenAsync(ClientId, ClientSecret, currentToken.RefreshToken, cancellationToken);
+                    Console.WriteLine("Refreshing expired access token...");
+                    var refreshedToken = await DiscordOAuth.RefreshTokenAsync(ClientId, ClientSecret, currentToken.RefreshToken, cancellationToken);
+
+                    TokenStorage.Save(refreshedToken);
+                    return refreshedToken;
                 }
                 catch { }
             }
 
+            Console.WriteLine("Prompting user authorization...");
             var code = await discord.AuthorizeAsync(ClientId, DiscordScopes, cancellationToken);
-            return await DiscordOAuth.ExchangeCodeAsync(ClientId, ClientSecret, code, cancellationToken);
+            var fullyAuthorizedToken = await DiscordOAuth.ExchangeCodeAsync(ClientId, ClientSecret, code, cancellationToken);
+
+            TokenStorage.Save(fullyAuthorizedToken);
+            return fullyAuthorizedToken;
         }
 
         static void LogAuthentication(AuthenticateData auth)
