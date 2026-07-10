@@ -48,5 +48,18 @@ If you want to run your own independent version, create a custom application on 
 4. A Discord authorization window will pop up automatically. Click **Authorize** to allow the local named pipe connection.
 5. Tap your avatar's Combadge in-game to toggle your voice mute status.
 
+Once you open the program, it'll mute you in Discord by default. The toggle of the badge is also off by default so you have to turn it on to toggle between states at the time of writing this.
+
+---
+
+## Special thanks
+Special thanks goes to Digikind, LessaShuftan, Lulalaby and Lother for helping with this project.
+Credit to Mavrickshuey for the original idea
+
+---
+
 > [!NOTE]
 > If your avatar parameter fails to register on startup, open your VRChat Expression Menu, navigate to **Options -> OSC**, and click **Reset Config** to force VRChat to regenerate your avatar's OSC layout file.
+
+> [!NOTE]
+> If you are using multiple Discord client instances, the first one you have opened will be controlled by the software.
