@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="InputSimulatorPlus" Version="1.0.7" />
     <PackageReference Include="LucHeart.CoreOSC" Version="1.6.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
   </ItemGroup>

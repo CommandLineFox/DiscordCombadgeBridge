@@ -1,30 +1,28 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System.Reflection;
+using WindowsInput;
+using WindowsInput.Native;
 
 namespace GFC_ComBadge
 {
     internal class Program
     {
-        static string ClientId = "";
-        static string ClientSecret = "";
         static string VrcHost = "127.0.0.1";
         static int VrcInputPort;
         static int VrcOutputPort;
         static string BadgeOscAddress = "";
         static bool DefaultMuted;
 
-        static readonly string[] DiscordScopes = ["rpc", "identify"];
-        static readonly TimeSpan discordRetryDelay = TimeSpan.FromSeconds(2);
-        static readonly TimeSpan discordRefreshInterval = TimeSpan.FromSeconds(30);
         static readonly TimeSpan vrcRetryDelay = TimeSpan.FromSeconds(2);
-
         static MuteState state = null!;
-        static TokenResponse? token = null;
 
         static readonly object vrcLock = new();
         static VrcOscBridge? vrc = null;
 
-        static readonly AutoResetEvent stateChangedEvent = new(false);
+        static readonly InputSimulator InputSim = new();
+
+        static readonly string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GFC_ComBadge");
+        static readonly string SetupFilePath = Path.Combine(AppDataFolder, "setup.dat");
 
         static async Task Main(string[] args)
         {
@@ -34,8 +32,6 @@ namespace GFC_ComBadge
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                string[] resourceNames = assembly.GetManifestResourceNames();
-
                 string resourceName = "GFC_Combadge.appsettings.json";
 
                 using Stream? stream = assembly.GetManifestResourceStream(resourceName);
@@ -46,21 +42,13 @@ namespace GFC_ComBadge
 
                 var config = new ConfigurationBuilder().AddJsonStream(stream).Build();
 
-                ClientId = config["Discord:ClientId"] ?? throw new Exception("Missing Discord:ClientId");
-                ClientSecret = config["Discord:ClientSecret"] ?? throw new Exception("Missing Discord:ClientSecret");
                 VrcHost = config["VrcOsc:Host"] ?? "127.0.0.1";
                 VrcInputPort = int.Parse(config["VrcOsc:InputPort"] ?? "9000");
                 VrcOutputPort = int.Parse(config["VrcOsc:OutputPort"] ?? "9001");
-                BadgeOscAddress = config["VrcOsc:BadgeAddress"] ?? "ComBadgePressed";
+                BadgeOscAddress = config["VrcOsc:BadgeAddress"] ?? "ComBadgeMuted";
                 DefaultMuted = bool.Parse(config["VrcOsc:DefaultMuted"] ?? "true");
 
                 state = new MuteState(DefaultMuted);
-
-                token = TokenStorage.Load();
-                if (token != null)
-                {
-                    Console.WriteLine("Loaded cached authorization tokens from AppData.");
-                }
             }
             catch (Exception ex)
             {
@@ -68,60 +56,37 @@ namespace GFC_ComBadge
                 return;
             }
 
-            Console.WriteLine("Combadge bridge booting...");
-            var discordTask = RunDiscordLoopAsync(cts.Token);
-            var vrcTask = RunVrcLoopAsync(cts.Token);
-
-            await Task.WhenAll(discordTask, vrcTask);
-        }
-
-        static async Task RunDiscordLoopAsync(CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested)
+            if (!File.Exists(SetupFilePath))
             {
+                await Setup.RunSetupAsync();
+
                 try
                 {
-                    Console.WriteLine("Connecting to Discord IPC...");
-                    var connectedDiscord = await DiscordRpcClient.ConnectAsync(ClientId, cancellationToken);
-                    await using var ownedDiscord = connectedDiscord;
-
-                    Console.WriteLine("Discord IPC connected.");
-                    token = await EnsureUsableTokenAsync(ownedDiscord, token, cancellationToken);
-
-                    var auth = await ownedDiscord.AuthenticateAsync(token.AccessToken, cancellationToken);
-                    LogAuthentication(auth);
-
-                    long appliedVersion = -1;
-                    var lastRefresh = DateTimeOffset.MinValue;
-
-                    while (!cancellationToken.IsCancellationRequested)
-                    {
-                        var snapshot = state.Get();
-                        var needsApply = appliedVersion != snapshot.Version;
-                        var needsRefresh = DateTimeOffset.UtcNow - lastRefresh >= discordRefreshInterval;
-
-                        if (needsApply || needsRefresh)
-                        {
-                            await ownedDiscord.SetMuteAsync(snapshot.Muted, cancellationToken);
-                            appliedVersion = snapshot.Version;
-                            lastRefresh = DateTimeOffset.UtcNow;
-
-                            Console.WriteLine(snapshot.Muted ? "Discord state applied: muted." : "Discord state applied: unmuted.");
-                        }
-
-                        var dynamicTimeout = discordRefreshInterval - (DateTimeOffset.UtcNow - lastRefresh);
-                        if (dynamicTimeout < TimeSpan.Zero) dynamicTimeout = TimeSpan.Zero;
-
-                        await Task.Run(() => WaitHandle.WaitAny([stateChangedEvent, cancellationToken.WaitHandle], dynamicTimeout), cancellationToken);
-                    }
+                    Directory.CreateDirectory(AppDataFolder);
+                    await File.WriteAllTextAsync(SetupFilePath, "Setup completed on: " + DateTime.Now.ToString());
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Discord loop failed: {ex.Message}");
-                    await SafeDelayAsync(discordRetryDelay, cancellationToken);
+                    Console.Error.WriteLine($"Warning: Could not save setup marker: {ex.Message}");
                 }
             }
+
+            Console.Clear();
+            Console.WriteLine("Combadge Simulator Bridge booting (Global Keypress Mode)...");
+            Console.WriteLine("F23 = Deafen (Startup only) | F24 = Mute (Live) - Active.");
+
+            if (DefaultMuted)
+            {
+                Console.WriteLine("Initial state set to MUTED. Executing startup synchronization...");
+
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F23);
+                await Task.Delay(100);
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F24);
+                await Task.Delay(100);
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F24);
+            }
+
+            await RunVrcLoopAsync(cts.Token);
         }
 
         static async Task RunVrcLoopAsync(CancellationToken cancellationToken)
@@ -131,21 +96,17 @@ namespace GFC_ComBadge
                 try
                 {
                     Console.WriteLine("Starting VRChat OSC bridge...");
-
                     lock (vrcLock)
                     {
                         vrc?.Dispose();
                         vrc = new VrcOscBridge(VrcHost, VrcInputPort, VrcOutputPort, BadgeOscAddress);
                     }
-
                     Console.WriteLine("VRChat OSC bridge online.");
-
                     VrcOscBridge? currentVrc;
                     lock (vrcLock) { currentVrc = vrc; }
-
                     if (currentVrc != null)
                     {
-                        await currentVrc.SendChatboxAsync("ComBadge Bridge Connected!", true, false);
+                        await currentVrc.SendChatboxAsync("ComBadge Hotkey Bridge Online!", true, false);
                         await currentVrc.ReceiveAsync(OnVrcMuteReceived, cancellationToken);
                     }
                 }
@@ -158,49 +119,30 @@ namespace GFC_ComBadge
             }
         }
 
-        static void OnVrcMuteReceived(bool vrcState)
+        static async void OnVrcMuteReceived(bool vrcState)
         {
-            var changed = state.Set(vrcState, "VRChat OSC (Strict Mode)");
+            state.Set(vrcState, "VRChat OSC");
 
-            if (changed)
+            if (vrcState)
             {
-                Console.WriteLine(vrcState
-                    ? "VRChat explicitly requested: MUTED."
-                    : "VRChat explicitly requested: UNMUTED.");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] OSC -> MUTED. Forcing Discord state...");
 
-                stateChangedEvent.Set();
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F23);
+                await Task.Delay(150);
+
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F23);
+                await Task.Delay(100);
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F24);
             }
-        }
-
-        static async Task<TokenResponse> EnsureUsableTokenAsync(DiscordRpcClient discord, TokenResponse? currentToken, CancellationToken cancellationToken)
-        {
-            if (currentToken is not null && !currentToken.IsExpiredSoon) return currentToken;
-
-            if (currentToken?.RefreshToken is not null)
+            else
             {
-                try
-                {
-                    Console.WriteLine("Refreshing expired access token...");
-                    var refreshedToken = await DiscordOAuth.RefreshTokenAsync(ClientId, ClientSecret, currentToken.RefreshToken, cancellationToken);
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] OSC -> UNMUTED. Forcing Discord state...");
 
-                    TokenStorage.Save(refreshedToken);
-                    return refreshedToken;
-                }
-                catch { }
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F23);
+                await Task.Delay(150);
+
+                InputSim.Keyboard.KeyPress(VirtualKeyCode.F24);
             }
-
-            Console.WriteLine("Prompting user authorization...");
-            var code = await discord.AuthorizeAsync(ClientId, DiscordScopes, cancellationToken);
-            var fullyAuthorizedToken = await DiscordOAuth.ExchangeCodeAsync(ClientId, ClientSecret, code, cancellationToken);
-
-            TokenStorage.Save(fullyAuthorizedToken);
-            return fullyAuthorizedToken;
-        }
-
-        static void LogAuthentication(AuthenticateData auth)
-        {
-            var name = auth.User.GlobalName ?? auth.User.Username;
-            Console.WriteLine($"User: {name} ({auth.User.Id}) | App: {auth.Application.Name}");
         }
 
         static async Task SafeDelayAsync(TimeSpan delay, CancellationToken cancellationToken)
