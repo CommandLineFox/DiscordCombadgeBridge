@@ -30,8 +30,8 @@ If you want to run your own independent version, create a custom application on 
 ### 1. Avatar Unity Setup
 1. Download the latest `.unitypackage` from the **Releases** section.
 2. Import the package into your Unity project (`Assets -> Import Package -> Custom Package...`).
-3. Drag the Combadge prefab onto your avatar hierarchy.
-4. Reposition the container object labeled **"Move me"** so it aligns perfectly with your avatar's physical chest badge.
+3. Drag the Combadge Bridge prefab onto your avatar hierarchy.
+4. Reposition the container object labeled **"Move over badge location"** so it aligns perfectly with your avatar's physical chest badge.
 5. Build and upload your avatar via the VRChat SDK.
 
 ### 2. Desktop Client Setup
@@ -53,7 +53,11 @@ Once you open the program, it'll mute you in Discord by default. The toggle of t
 ---
 
 ## Special thanks
-Special thanks goes to Digikind, LessaShuftan, Lulalaby and Lother for helping with this project.
+Special thanks goes to:
+- Digikind, LessaShuftan and Lother for helping with the Unity side of things
+- Lulalaby for helping with the initial code and asset
+- terri_versh for helping with the art for the asset
+
 Credit to Mavrickshuey for the original idea
 
 ---
