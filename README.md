@@ -47,7 +47,7 @@ The latest version completely bypasses the restrictive Discord Developer Portal.
 
 ## Legacy Version Setup (v1.2 - RPC Mode)
 
-The legacy version relies on Discord's Rich Presence / IPC architecture. It provides an elegant, hands-free integration but requires developer access.
+The legacy version relies on Discord's Rich Presence / IPC architecture. It provides an elegant, hands-free integration but requires developer access. It is still compatible with newer versions of the combadge asset.
 
 ### Requirements
 
@@ -87,6 +87,9 @@ To run an independent RPC version, create an application on the [Discord Develop
 
 > [!NOTE]
 > **Multiple Clients:** If you are running multiple Discord client instances simultaneously, the software will always latch onto and control the *first* instance that was opened on your operating system.
+
+> [!NOTE]
+> **Sounds:** If you are using version 2.0 or higher, you may want to consider disabling the notification sound of muting, unmuting, deafening and undeafening since those four happen all at the same time when interacting with the badge to achieve a properly synced voice state.
 
 ---
 
