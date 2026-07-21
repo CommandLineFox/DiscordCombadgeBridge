@@ -76,7 +76,8 @@ To run an independent RPC version, create an application on the [Discord Develop
 2. Import the package into your Unity project (`Assets -> Import Package -> Custom Package...`).
 3. Drag the Combadge Bridge prefab onto your avatar hierarchy.
 4. Reposition the container object labeled **"Move over badge location"** so it aligns perfectly with your avatar's physical chest badge.
-5. Build and upload your avatar via the VRChat SDK.
+5. If your avatar doesn't follow standard armature naming conventions, make sure to edit the Armature link of the "Move over badge location" object to the proper path to your left breast or whichever location you plan to link the badge to follow against
+6. Build and upload your avatar via the VRChat SDK.
 
 ---
 
