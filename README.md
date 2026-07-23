@@ -14,7 +14,7 @@ This repository builds two standalone binaries to give you complete freedom in h
 
 | Feature | Keybind Executable (`...Keybind.exe`) | RPC Integration Executable (`...RPC.exe`) |
 | :--- | :--- | :--- |
-| **Discord App Setup** | ❌ None required | ⚠️ Requires Whitelist OR Custom Dev Portal App |
+| **Discord App Setup** | None required | Requires Whitelist OR Custom Dev Portal App |
 | **First-Time Setup** | 5-second key mapping wizard | Discord Authorization Popup |
 | **Desync Recovery** | Auto-forces state using Master Deafen (`F23`) | Triggered strictly via OSC events |
 | **Mechanism** | Windows Virtual Keys (`F23`/`F24`) | Discord IPC / OAuth2 API |
