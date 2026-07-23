@@ -2,6 +2,29 @@
 
 An intelligent Open Sound Control (OSC) bridge designed to link VRChat avatar parameter actions directly to your Discord desktop client. Tapping your in-game Combadge instantly synchronizes your voice state in Discord.
 
+<<<<<<< HEAD
+This repository builds two standalone binaries to give you complete freedom in how you want to bridge VRChat with Discord:
+
+1. **`GFC_ComBadge_Keybind.exe` (Recommended):** Uses simulated global keypresses (`F23`/`F24`). Requires zero setup on the Discord Developer Portal and works out of the box for everyone.
+2. **`GFC_ComBadge_RPC.exe` (Legacy Integration):** Uses Discord's native Inter-Process Communication (IPC) Named Pipes for direct API state sync.
+
+---
+
+## Quick Comparison
+
+| Feature | Keybind Executable (`...Keybind.exe`) | RPC Integration Executable (`...RPC.exe`) |
+| :--- | :--- | :--- |
+| **Discord App Setup** | ❌ None required | ⚠️ Requires Whitelist OR Custom Dev Portal App |
+| **First-Time Setup** | 5-second key mapping wizard | Discord Authorization Popup |
+| **Desync Recovery** | Auto-forces state using Master Deafen (`F23`) | Triggered strictly via OSC events |
+| **Mechanism** | Windows Virtual Keys (`F23`/`F24`) | Discord IPC / OAuth2 API |
+
+---
+
+## Installation & Setup
+
+### Step 1: Avatar Unity Setup (Universal)
+=======
 Starting with version 2.0, the application offers two distinct modes of operation: the **Latest Keybind Mode** (no Discord Developer Portal setup required) and the **Legacy RPC Mode** (automatic state sync via Discord's developer API).
 
 ## Architecture & Frameworks
@@ -72,15 +95,71 @@ To run an independent RPC version, create an application on the [Discord Develop
 
 ## Pipeline: Avatar Unity Setup (Universal)
 
+>>>>>>> d0d88f188663b68be91117e0d15e54dbf4e68248
 1. Download the latest `.unitypackage` from the **Releases** section.
 2. Import the package into your Unity project (`Assets -> Import Package -> Custom Package...`).
 3. Drag the Combadge Bridge prefab onto your avatar hierarchy.
 4. Reposition the container object labeled **"Move over badge location"** so it aligns perfectly with your avatar's physical chest badge.
+<<<<<<< HEAD
+5. *Unity Audio Tip:* Ensure your audio clip does **not** have `Load In Background` checked and that the Spatial Blend on the Audio Source is set to **3D (1)**.
+=======
 5. If your avatar doesn't follow standard armature naming conventions, make sure to edit the Armature link of the "Move over badge location" object to the proper path to your left breast or whichever location you plan to link the badge to follow against
+>>>>>>> d0d88f188663b68be91117e0d15e54dbf4e68248
 6. Build and upload your avatar via the VRChat SDK.
 
 ---
 
+<<<<<<< HEAD
+### Step 2: Choose Your Executable
+
+#### Option A: Using `GFC_ComBadge_Keybind.exe` (Fastest)
+
+1. Open **Discord** -> **User Settings** -> **Keybinds**.
+2. Add a keybind for **Toggle Mute** and one for **Toggle Deafen**.
+3. Run `GFC_ComBadge_Keybind.exe`.
+4. If running for the first time, the console wizard will guide you to press **[ENTER]** with a 5-second countdown to automatically bind `F24` (Mute) and `F23` (Deafen) into Discord.
+5. Launch VRChat with **OSC enabled** (`Radial Menu -> Options -> OSC -> Enabled`) and tap your badge!
+
+---
+
+#### Option B: Using `GFC_ComBadge_RPC.exe` (IPC Integration)
+
+Due to Discord Developer Portal OAuth2 restrictions, this method requires access permissions.
+
+* **Standard Users:** You must be added to the internal **App Testers** whitelist by the project maintainer.
+* **Developers / Custom Setup:** Create a custom application on the [Discord Developer Portal](https://discord.com/developers/applications):
+  1. **Installation Tab:** Set the installation method strictly to **User Install**.
+  2. **OAuth2 Tab:** Set Redirect URI to `https://localhost`.
+  3. **Credentials:** Add your `Client ID` and `Client Secret` to `appsettings.json` before compiling.
+
+**To Run:**
+1. Open **Discord** and join any voice channel.
+2. Launch **VRChat** with **OSC enabled**.
+3. Run `GFC_ComBadge_RPC.exe` and click **Authorize** on the Discord pop-up window.
+
+---
+
+## Technical Specifications
+
+* **Framework:** .NET 9.0 / .NET 10.0 (Console Application)
+* **VRChat Network Protocol:** CoreOSC (`LucHeart.CoreOSC`)
+* **Input Simulation:** Native Virtual Key Codes (`WindowsInput`)
+* **Discord IPC:** Named Pipe Stream over JSON RPC
+* **Configuration:** Microsoft Extensions Configuration (JSON Streams)
+
+---
+
+## Troubleshooting & Notes
+
+> [!NOTE]
+> **OSC Layout Refresh:** If your avatar parameter fails to register on startup, open your VRChat Expression Menu, navigate to **Options -> OSC**, and click **Reset Config** to force VRChat to regenerate your avatar's layout file.
+
+> [!NOTE]
+> **Multiple Discord Clients:** If you run multiple Discord instances, the software will attach to the instance that was launched first.
+
+---
+
+=======
 ## Troubleshooting & Notes
 
 > [!NOTE]
@@ -94,10 +173,15 @@ To run an independent RPC version, create an application on the [Discord Develop
 
 ---
 
+>>>>>>> d0d88f188663b68be91117e0d15e54dbf4e68248
 ## Special Thanks
 Special thanks goes to:
-- Digikind, LessaShuftan and Lother for helping with the Unity side of things
-- Lulalaby for helping with the initial code and asset
-- terri_versh for helping with the art for the asset
+- **Digikind**, **LessaShuftan**, and **Lother** for helping with the Unity side of things
+- **Lulalaby** for helping with the initial code and asset
+- **terri_versh** for helping with the art for the asset
 
+<<<<<<< HEAD
+Credit to **Mavrickshuey** for the original idea.
+=======
 Credit to Mavrickshuey for the original idea.
+>>>>>>> d0d88f188663b68be91117e0d15e54dbf4e68248

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using WindowsInput;
+﻿using WindowsInput;
 using WindowsInput.Native;
 
 namespace GFC_ComBadge
