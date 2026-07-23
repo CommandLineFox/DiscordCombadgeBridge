@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Integration
 {
     public sealed class DiscordRpcClient : IAsyncDisposable
     {

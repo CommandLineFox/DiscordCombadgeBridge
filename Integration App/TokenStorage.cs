@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Integration
 {
     public static class TokenStorage
     {

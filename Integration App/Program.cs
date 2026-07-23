@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Integration
 {
     internal class Program
     {
@@ -15,7 +15,6 @@ namespace GFC_ComBadge
 
         static readonly string[] DiscordScopes = ["rpc", "identify"];
         static readonly TimeSpan discordRetryDelay = TimeSpan.FromSeconds(2);
-        static readonly TimeSpan discordRefreshInterval = TimeSpan.FromSeconds(30);
         static readonly TimeSpan vrcRetryDelay = TimeSpan.FromSeconds(2);
 
         static MuteState state = null!;
@@ -36,7 +35,7 @@ namespace GFC_ComBadge
                 var assembly = Assembly.GetExecutingAssembly();
                 string[] resourceNames = assembly.GetManifestResourceNames();
 
-                string resourceName = "GFC_Combadge.appsettings.json";
+                string resourceName = "GFC_Combadge_Integration.appsettings.json";
 
                 using Stream? stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)

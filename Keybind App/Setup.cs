@@ -1,7 +1,7 @@
 ﻿using WindowsInput;
 using WindowsInput.Native;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Keybind
 {
     /// <summary>
     /// Set up the mute and deafen keybinds within Discord using the Enter key and a 5-second delay

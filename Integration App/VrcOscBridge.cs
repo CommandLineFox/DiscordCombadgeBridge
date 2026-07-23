@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using LucHeart.CoreOSC;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Integration
 {
     /// <summary>
     /// Bridges VRChat avatar parameter OSC traffic to strongly typed mute state updates.

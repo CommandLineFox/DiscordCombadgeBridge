@@ -3,7 +3,7 @@ using System.Reflection;
 using WindowsInput;
 using WindowsInput.Native;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Keybind
 {
     internal class Program
     {
@@ -32,7 +32,7 @@ namespace GFC_ComBadge
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                string resourceName = "GFC_Combadge.appsettings.json";
+                string resourceName = "GFC_Combadge_Keybind.appsettings.json";
 
                 using Stream? stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)

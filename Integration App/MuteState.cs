@@ -1,4 +1,4 @@
-﻿namespace GFC_ComBadge
+﻿namespace GFC_ComBadge_Integration
 {
     /// <summary>
     /// Thread-safe holder for the desired Discord mute state.

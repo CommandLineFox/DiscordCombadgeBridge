@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace GFC_ComBadge
+namespace GFC_ComBadge_Integration
 {
     public static class DiscordOAuth
     {
